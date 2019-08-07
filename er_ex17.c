@@ -39,18 +39,12 @@ void Address_print(struct Address *addr){
 }
 
 void Database_load(struct Connection *conn){
-    int rc = fread(conn->db, sizeof(struct Database),1,conn->file);
-    if(rc!=1)
-	die("Failed to load database.");
+    fread(conn->db, sizeof(struct Database),1,conn->file);
 }
 
 struct Connection *Database_open(const char *filename, char mode){
     struct Connection *conn = malloc(sizeof(struct Connection));
-    if(!conn)  //conn == NULL
-	die("Memory error.");
     conn->db = malloc(sizeof(struct Database));
-    if(!conn->db)
-	die("Memory error.");
     if(mode=='c'){
 	conn->file = fopen(filename,"w");
     }else{
@@ -59,32 +53,28 @@ struct Connection *Database_open(const char *filename, char mode){
 	    Database_load(conn);
 	}
     }
-    if(!conn->file)
-	die("Failed to open the file");
     return conn;
 }
 
 
 void Database_close(struct Connection *conn){
-    if(conn){
+   
 	if(conn->file)
 	    fclose(conn->file);
 	if(conn->db)
 	    free(conn->db);
 	free(conn);
-    }
+    
 }
 
 
 void Database_write(struct Connection *conn){
     rewind(conn->file);
 
-    int rc = fwrite(conn->db, sizeof(struct Database),1,conn->file);
-    if(rc!=1)
-	die("Failed to write database.");
-    rc=fflush(conn->file);
-    if(rc==-1)
-	die("Cannot flush database.");
+    fwrite(conn->db, sizeof(struct Database),1,conn->file);
+  
+    fflush(conn->file);
+  
 }
 
 
@@ -100,8 +90,6 @@ void Database_create(struct Connection *conn){
 
 void Database_set(struct Connection *conn, int id, const char *name, const char *email){
     struct Address *addr = &conn->db->rows[id];
-    if(addr->set)
-	die("Already set, delete it first.");
     addr->set = 1;
     //Warning BUG!
     char *res = strncpy(addr->name,name,MAX_DATA);
@@ -122,30 +110,6 @@ void Database_get(struct Connection *conn, int id){
     }
 }
 
-int Database_size(struct Connection *conn){
-    int i = 0;
-    while(conn->db->rows[i++]);
-    return i;
-}
-
-void Database_find_by_name(struct Connection *conn, char *name){
-    struct Address *addr;
-    int size = Database_size(conn);
-    for(int i = 0; i < size; i++){
-	addr = &conn->db->rows[i];
-	if(strcmp(addr->name,name)==0)
-	    Address_print(addr);
-    die("Name not found.");
-}
-
-void Database_find_by_mail(struct Connection *conn, char *mail){
-    struct Address *addr;
-    int size = Database_size(conn);
-    for(int i = 0; i < size; i++){
-	addr = &conn->db->rows[i];
-	if(strcmp(addr->email,email)==0)
-            Addr_print(addr);
-    die("Email not found.");
 
 void Database_delete(struct Connection *conn, int id){
     struct Address addr = {.id=id,.set=0};
@@ -173,7 +137,7 @@ int main(int argc, char *argv[]){
     int id = 0;
 
     if(argc > 3) id = atoi(argv[3]);
-    if(id>=MAX_ROWS) die("There's not that many records.");
+  
 
     switch(action){
 	case 'c':
