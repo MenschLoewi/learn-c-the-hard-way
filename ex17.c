@@ -7,7 +7,6 @@
 #define MAX_DATA 512
 #define MAX_ROWS 100
 
-
 struct Address{
     int id;
     int set;
@@ -105,9 +104,11 @@ void Database_set(struct Connection *conn, int id, const char *name, const char 
     addr->set = 1;
     //Warning BUG!
     char *res = strncpy(addr->name,name,MAX_DATA);
+    addr->name[MAX_DATA-1]='\0';
     if(!res)
 	die("Name copy failed");
     res = strncpy(addr->email, email, MAX_DATA);
+    addr->email[MAX_DATA-1]='\0';
     if(!res)
 	die("Email copy failed");
 }
@@ -124,8 +125,28 @@ void Database_get(struct Connection *conn, int id){
 
 int Database_size(struct Connection *conn){
     int i = 0;
-    while(conn->db->rows[i++]);
+    struct Address *addr = NULL;
+    while(i < MAX_ROWS){
+	printf("%d\n",i);
+        addr = &conn->db->rows[i];
+	if(addr->set)
+   	    i+=1;
+	else{
+	    if(i<=MAX_ROWS) break;
+	    else continue;
+	}
+    }
     return i;
+}
+
+void Database_find(struct Connection *conn, char *mode, char *findBy){
+    if(mode==NULL ||mode==' ' || mode=='\0') die("Please provide 0 for name or 1 for mail.");	
+    if(atoi(mode)==0){
+	Database_find_by_name(conn,findBy);
+    }
+    else{
+	Database_find_by_mail(conn,findBy);
+    }
 }
 
 void Database_find_by_name(struct Connection *conn, char *name){
@@ -133,19 +154,27 @@ void Database_find_by_name(struct Connection *conn, char *name){
     int size = Database_size(conn);
     for(int i = 0; i < size; i++){
 	addr = &conn->db->rows[i];
-	if(strcmp(addr->name,name)==0)
+	if(strcmp(addr->name,name)==0){
 	    Address_print(addr);
+	    return;
+	}
+    }
     die("Name not found.");
 }
 
-void Database_find_by_mail(struct Connection *conn, char *mail){
+void Database_find_by_mail(struct Connection *conn,char *email){
     struct Address *addr;
     int size = Database_size(conn);
     for(int i = 0; i < size; i++){
 	addr = &conn->db->rows[i];
-	if(strcmp(addr->email,email)==0)
-            Addr_print(addr);
+	if(strcmp(addr->email,email)==0){
+	   Address_print(addr);
+	   return;
+        }
+    }
     die("Email not found.");
+}
+
 
 void Database_delete(struct Connection *conn, int id){
     struct Address addr = {.id=id,.set=0};
@@ -158,8 +187,7 @@ void Database_list(struct Connection *conn){
 
     for(i=0; i < MAX_ROWS; i++){
 	struct Address *cur = &db->rows[i];
-	if(cur->set)
-	    Address_print(cur);
+	if(cur->set)  Address_print(cur);
     }
 }
 
@@ -200,8 +228,16 @@ int main(int argc, char *argv[]){
 	case 'l': 
 	    Database_list(conn);
 	    break;
+	case 'f':
+	    if(argc != 5)
+	        die("Need param and name.");
+	    Database_find(conn, argv[3],argv[4]);
+	    break;
+	case 'x':
+	    Database_size(conn);
+	    break;
 	default:
-	    die("Invalid action: c=create, g=get, s=set, d=del, l=list");
+	    die("Invalid action: c=create, g=get, s=set, d=del, l=list, f [01]=find by [name|mail]");
     }
     Database_close(conn);
     return 0;
